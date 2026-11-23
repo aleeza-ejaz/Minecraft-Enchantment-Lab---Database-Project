@@ -218,7 +218,17 @@ def db_check(conn):
         "SELECT ie.item_enchantment_id, ie.enchantment_id, ie.enchantment_level, t.name, t.base"
         " FROM item_enchantments ie LEFT JOIN trial_items t ON t.item_id = ie.item_id"
         )
-    
+    for row_id, ench_id, level, build_name, base in rows:
+        if build_name is None:
+            problems.append(f"item_enchantments row {row_id} belongs to no saved build")
+            continue
+    e = by_id.get(ench_id)
+    if e is None:
+        problems.append(f'Build "{build_name}": unknown enchantment id {ench_id}')
+    if level is None or not 1 <= level <= e.max_level:
+        problems.append(f'Build "{build_name}": {e.name} does not fit a {base}')
+
+    return problems
     
 
 
