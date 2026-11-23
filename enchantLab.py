@@ -173,15 +173,21 @@ def db_check(conn):
     """Look through the database and return a list of problems.
     empty list is a fine database."""
     problems = []
-    cols = []
     existing = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
-    EXPECTED_COLUMNS = 0
+    EXPECTED_COLUMNS = {
+         "enchantments": {"enchantment_id", "name", "type", "compatibility", "weight", "obtainable",
+                     "max_lvl", "game_edition", "description", "treasure", "curse"},
+         "trial_items": {"item_id", "name", "base", "category", "date_created", "date_modified"},
+         "item_enchantments": {"item_enchantment_id", "enchantment_level", "item_id", "enchantment_id"},
+    }
+    
     for table, columns in EXPECTED_COLUMNS.items():
         if table not in existing:
             problems.append(f"Missing table: {table}")
+            problems.append(f"{table} is missing columns: {', '.join(sorted(missing))}")
             continue
         found = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
-        missing = cols - found
+        missing = columns - found
         if missing:
             problems.append(f"Table {table} is missing columns: {', '.join(missing)}")
     if problems:
@@ -226,10 +232,10 @@ def db_check(conn):
     if e is None:
         problems.append(f'Build "{build_name}": unknown enchantment id {ench_id}')
     if level is None or not 1 <= level <= e.max_level:
-        problems.append(f'Build "{build_name}": {e.name} does not fit a {base}')
-
-    return problems
-    
+        problems.append(f'Build "{build_name}": {e.name} level {level} (allowed 1-{e.max_level})')
+    if base and not applies(e, base):
+        problems.append(f'Build "{build_name}": {e.name} doesnt fit a {base}')
+    return problems    
 
 
 # --------------------------------------------------------------------------
@@ -410,6 +416,10 @@ class App(tk.Tk):
         self.minsize(1000, 720)
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         apply_theme(self)
+
+        problems = db_check(self.conn)
+        if problems:
+            startup_error = "Database check found problems:\n\n" + "\n".join(problems[:15])
 
         self.build = {}          # enchantment name -> level
         self.saved_rows = []     # rows from trial_items
