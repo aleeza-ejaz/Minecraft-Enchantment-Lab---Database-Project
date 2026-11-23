@@ -195,9 +195,30 @@ def db_check(conn):
     for r in conn.execute("PRAGMA foreign_key_check").fetchall():
         problems.append(f"Foreign key violation: {r}")
 
-    if conn.execute("SELECT COUNT(*) FROM enchantments"):
-        problems.append("Enchantment table is empty")
-    # commit to shaans x1. 
+    if conn.execute("SELECT COUNT(*) FROM enchantments").fetchone()[0] == 0:
+        problems.append("The enchantments table is empty.")
+    for r in conn.execute("SELECT name FROM enchantments WHERE max_lvl IS NULL OR max_lvl < 1"):
+        problems.append(f"{r[0]}: max_lvl is missing or below 1")
+    for r in conn.execute("SELECT name FROM enchantments WHERE compatibility IS NULL OR TRIM(compatibility) = ''"):
+        problems.append(f"{r[0]}: no compatible items listed")
+    for r in conn.execute("SELECT name, COUNT(*) FROM enchantments GROUP BY name HAVING COUNT(*) > 1"):
+        problems.append(f"Enchantment name used {r[1]} times: {r[0]} (the app looks enchantments up by name)")
+
+
+    # save builds
+    for r in conn.execute("SELECT name, COUNT(*) FROM trial_items GROUP BY name HAVING COUNT(*) > 1"):
+        problems.append(f"Build name saved {r[1]} times: {r[0]}")
+    for r in conn.execute("SELECT name, category FROM trial_items"):
+        if r[1] not in RARITIES:
+            problems.append(f'Build "{r[0]}": unknown rarity "{r[1]}"')
+
+    #enchanments inside a saved build
+    by_id = {e.id: e for e in db_load_enchants(conn)}
+    rows = conn.execute(
+        "SELECT ie.item_enchantment_id, ie.enchantment_id, ie.enchantment_level, t.name, t.base"
+        " FROM item_enchantments ie LEFT JOIN trial_items t ON t.item_id = ie.item_id"
+        )
+    
     
 
 
