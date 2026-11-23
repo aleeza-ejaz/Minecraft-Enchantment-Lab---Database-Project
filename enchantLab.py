@@ -173,10 +173,10 @@ def db_check(conn):
     """Look through the database and return a list of problems.
     empty list is a fine database."""
     problems = []
-
+    cols = []
     existing = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
-
-    for table, columns in EXPECTED_COLUMS.items():
+    EXPECTED_COLUMNS = 0
+    for table, columns in EXPECTED_COLUMNS.items():
         if table not in existing:
             problems.append(f"Missing table: {table}")
             continue
