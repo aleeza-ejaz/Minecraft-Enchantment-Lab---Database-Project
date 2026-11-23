@@ -23,6 +23,8 @@ import tkinter as tk
 from collections import namedtuple
 from pathlib import Path
 from tkinter import messagebox, ttk
+import math
+import sqlite3 
 
 DB_PATH = Path(__file__).resolve().with_name("enchantment_lab.db")
 
@@ -166,6 +168,37 @@ def db_save_build(conn, name, base, category, levels):
     except Exception:
         conn.rollback()
         raise
+
+def db_check(conn):
+    """Look through the database and return a list of problems.
+    empty list is a fine database."""
+    problems = []
+
+    existing = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+
+    for table, columns in EXPECTED_COLUMS.items():
+        if table not in existing:
+            problems.append(f"Missing table: {table}")
+            continue
+        found = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+        missing = cols - found
+        if missing:
+            problems.append(f"Table {table} is missing columns: {', '.join(missing)}")
+    if problems:
+        return problems
+
+    result = conn.execute("PRAGMA integrity_check").fetchone()[0]
+
+    if result != "ok":
+        problems.append(f"Integrity check failed: {result}")
+
+    for r in conn.execute("PRAGMA foreign_key_check").fetchall():
+        problems.append(f"Foreign key violation: {r}")
+
+    if conn.execute("SELECT COUNT(*) FROM enchantments"):
+        problems.append("Enchantment table is empty")
+    # commit to shaans x1. 
+    
 
 
 # --------------------------------------------------------------------------
@@ -504,6 +537,8 @@ class App(tk.Tk):
             lbl.pack(anchor="w")
             self.tiles[key] = lbl
 
+        
+
     def on_tool_change(self):
         tool = self.tool_var.get()
         names = [e.name for e in self.enchants if tool and applies(e, tool)]
@@ -549,6 +584,7 @@ class App(tk.Tk):
         self.header_lbl.config(text=f"{name}  \u2022  {rarity} {tool}".rstrip(), foreground=RARITIES[rarity])
         for key, lbl in self.tiles.items():
             lbl.config(text=show(s.get(key)))
+
 
     # ---------------- Save / load (trial_items + item_enchantments) ----------------
     def refresh_saved(self):
