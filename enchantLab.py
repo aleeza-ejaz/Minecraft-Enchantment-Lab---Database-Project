@@ -417,15 +417,14 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         apply_theme(self)
 
-        problems = db_check(self.conn)
-        if problems:
-            startup_error = "Database check found problems:\n\n" + "\n".join(problems[:15])
-
         self.build = {}          # enchantment name -> level
         self.saved_rows = []     # rows from trial_items
         self.conn, self.enchants, startup_error = None, [], None
         try:
             self.conn = db_connect()
+            problems = db_check(self.conn)
+            if problems:
+                startup_error = "Database check found problems:\n\n" + "\n".join(problems[:15])
             self.enchants = db_load_enchants(self.conn)
         except Exception as exc:  # noqa: BLE001 - show any connection problem to the user
             startup_error = str(exc)
@@ -575,7 +574,7 @@ class App(tk.Tk):
                 tile = ttk.Frame(summ, padding=(0, 0, 0, 4))
                 tile.grid(row=row + 1, column=col, sticky="ew")
             ttk.Label(tile, text=label, style="Muted.TLabel").pack(anchor="w")
-            lbl = ttk.label(tile, style = "Value.Tlabel", justify="left", wraplength=700 if key == "other" else 0)
+            lbl = ttk.Label(tile, style="Value.TLabel", justify="left", wraplength=700 if key == "other" else 0)
             lbl.pack(anchor="w")
             self.tiles[key] = lbl
 
