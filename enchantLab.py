@@ -564,7 +564,8 @@ class App(tk.Tk):
         self.tiles = {}
         layout = [("count", "Enchantments"), ("levels", "Total enchantment levels"),
                   ("books", "Bookshelves required"), ("required", "Enchanting table level"),
-                  ("attack", "Theorized attack strength"), ("dur", "Durability")]
+                  ("attack", "Theorized attack strength"), ("dur", "Durability"),
+                  ("mining", "Mining speed bonus"), ("other", "Other effects")]
         for i, (key, label) in enumerate(layout):
             if key == "other":
                 tile = ttk.Frame(summ, padding=(0, 0, 0, 2))
@@ -574,7 +575,7 @@ class App(tk.Tk):
                 tile = ttk.Frame(summ, padding=(0, 0, 0, 4))
                 tile.grid(row=row + 1, column=col, sticky="ew")
             ttk.Label(tile, text=label, style="Muted.TLabel").pack(anchor="w")
-            lbl = ttk.Label(tile, style="Value.TLabel", justify="left")
+            lbl = ttk.label(tile, style = "Value.Tlabel", justify="left", wraplength=700 if key == "other" else 0)
             lbl.pack(anchor="w")
             self.tiles[key] = lbl
 
